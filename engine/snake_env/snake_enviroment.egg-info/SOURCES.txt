@@ -1,0 +1,8 @@
+setup.py
+snake_env/__init__.py
+snake_env/snake_env.py
+snake_enviroment.egg-info/PKG-INFO
+snake_enviroment.egg-info/SOURCES.txt
+snake_enviroment.egg-info/dependency_links.txt
+snake_enviroment.egg-info/not-zip-safe
+snake_enviroment.egg-info/top_level.txt
