@@ -11,6 +11,7 @@ import time
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import tensorflow as tf
 
 class DQN:
 
@@ -109,61 +110,66 @@ def train_dqn(episode, env):
     return sum_of_rewards
 
 
-if __name__ == '__main__':
 
-    params = dict()
-    params['name'] = None
-    params['epsilon'] = 1
-    params['gamma'] = .95
-    params['batch_size'] = 500
-    params['epsilon_min'] = .01
-    params['epsilon_decay'] = .995
-    params['learning_rate'] = 0.00025
-    params['layer_sizes'] = [128, 128, 128]
+params = dict()
+params['name'] = None
+params['epsilon'] = 1
+params['gamma'] = .95
+params['batch_size'] = 500
+params['epsilon_min'] = .01
+params['epsilon_decay'] = .995
+params['learning_rate'] = 0.00025
+params['layer_sizes'] = [128, 128, 128]
 
-    results = dict()
-    ep = 200
+results = dict()
+ep = 200
 
-    env_infos = {'States: only walls':{'state_space':'no body knowledge'}, 'States: direction 0 or 1':{'state_space':''}, 'States: coordinates':{'state_space':'coordinates'}, 'States: no direction':{'state_space':'no direction'}}
+env_infos = {'States: only walls':{'state_space':'no body knowledge'}, 'States: direction 0 or 1':{'state_space':''}, 'States: coordinates':{'state_space':'coordinates'}, 'States: no direction':{'state_space':'no direction'}}
 
 
-    env_info = {"state_space" : "no direction"}
-    env = SnakeEnvTurn((20, 20),(10,10),1)
+env_info = {"state_space" : "no direction"}
+env = SnakeEnvTurn((20, 20),(10,10),1)
+
+fig, ax = plt.subplots()
+im = ax.imshow(env.view_game(),interpolation='none',vmin=0, vmax=1)
+
+agent = DQN(env, params)
+writervideo = animation.PillowWriter(fps=15)
+models = [r"raw/raw ",r"naive/naive ",r"user_memory/user_memory ",r"elite/elite_memory "]
+eps = [r"ep 0",r"ep 4",r"ep 20",r"ep 49"]
+
+
+
+def init2():
+    global state, im
+    ax.grid(visible=False)
+    state = env.reset()
+    state = np.reshape(state, (1, env.state_space))
+    im = ax.imshow(env.view_game(),interpolation='none',vmin=0, vmax=4)
+    im.set_array(env.view_game())
     
-    fig, ax = plt.subplots()
-    im = ax.imshow(env.view_game())
+    return im,
 
-    agent = DQN(env, params)
-
-    agent.model.load_weights("best_agent.h5f")
-
-    def init2():
-        global state
-        ax.grid(visible=False)
-        state = env.reset()
-        state = np.reshape(state, (1, env.state_space))
-        im = ax.imshow(env.view_game())
-        im.set_data(env.view_game())
-        
-        return im,
-    
-    def update(i):
-        global state
-        # Predict action Q-values
-        # From environment state
-        state = np.reshape(state, (1, env.state_space))
-        action = agent.act(state)
-        new_state, _, done, _ = env.step(action)
-        state = new_state
+def update(i):
+    global state, im
+    # Predict action Q-values
+    # From environment state
+    state = np.reshape(state, (1, env.state_space))
+    action = agent.act(state)
+    new_state, _, done, _ = env.step(action)
+    state = new_state
 
 
-        if done:
-            #reset on death
-            init2()
-        im.set_data(env.view_game())
+    if done:
+        #reset on death
+        init2()
+    im.set_array(env.view_game())
 
-        return im,
+    return im,
+for m in models:
+    for e in eps:
+        agent.model.load_weights(m+e+".h5f").expect_partial()
 
-    anim = animation.FuncAnimation(fig, func=update, init_func = init2, frames = 1000, interval = 70, blit=True)
-
-    plt.show()
+        anim = animation.FuncAnimation(fig, func=update, init_func = init2, frames = 400, interval = 50, blit=False)
+        # plt.show()
+        anim.save(m+e+'.gif',writer=writervideo)
